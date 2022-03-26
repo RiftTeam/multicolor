@@ -4,7 +4,7 @@
 #
 # Hint: python -m pip install pillow (install PIL on Windows)
 #
-# last updated by Decca / RiFT on 18.03.2021 23:45
+# last updated by Decca / RiFT on 26.03.2021 23:25
 #
 
 
@@ -148,10 +148,8 @@ if outputConv != 'pil':
         with open(configFile) as file:
             for line in file:
                 if line.startswith(outputConv + " = "):
-                    # print(line)  # DEBUG
                     name, command = line.split('=', 1)
                     convCommand = command.strip()
-                    # print(convCommand)  # DEBUG
                 else:
                     continue
         # check and parse converter command
@@ -165,18 +163,15 @@ if outputConv != 'pil':
                 exit(1)
             else:
                 tmpDir = (tempfile.gettempdir())
-                inFile = tmpDir + "\\mtc-infile" + orgFormat
-                outFile = tmpDir + "\\mtc-outfile" + orgFormat
+                inFile = os.path.join(tmpDir, 'mtc-infile' + orgFormat)
+                outFile = os.path.join(tmpDir, 'mtc-outfile' + orgFormat)
                 convSubproc = convCommand.replace('{IN}', '"' + inFile + '"')
                 convSubproc = convSubproc.replace('{OUT}', '"' + outFile + '"')
-                # print(convSubproc)  # DEBUG
             # check converter binary
             convBinary = convCommand.split('"')[1].split('"')[0]
-            # print(convBinary)  # DEBUG
             if not os.path.isfile(convBinary):
                 print("ERROR: " + convBinary + " not found")
                 exit(1)
-                # print("---")  # DEBUG
 
 
 # function when using an external converter
@@ -187,7 +182,7 @@ def ext_conv(convLine):
     except Exception as error:
         print("ERROR: " + str(error), file=sys.stderr)
     # execute converter
-    subprocess.run(convSubproc)
+    subprocess.run(convSubproc, shell=True)
     # load reduced line
     try:
         doneLine = Image.open(outFile)

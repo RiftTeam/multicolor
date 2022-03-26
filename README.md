@@ -1,4 +1,4 @@
-![mulTIColor Logo](https://repository-images.githubusercontent.com/474191033/44e4a485-7781-4b73-99f8-d6e1dd0d9ccd)
+![mulTIColor Logo](https://repository-images.githubusercontent.com/474191033/6b4ec005-585c-4c27-a4f4-b6eea5f3b6ea)
 
 mulTICcolor
 ===========
@@ -6,10 +6,10 @@ mulTICcolor
 A converter for mulitcolor-mode on the [TIC-80](https://tic80.com/).
 
 The [TIC-80](https://tic80.com/) normaly supports a max. [resolution](https://github.com/nesbox/TIC-80/wiki/display) of 240 pixels x 136 pixels with a [palette](https://github.com/nesbox/TIC-80/wiki/palette) of 16 RGB-colors.
-But it is possible to change the palette every line with some [tweaks](https://github.com/nesbox/TIC-80/wiki/palette#more-than-16-colors), resulting in max. 2176 colors on screen.
+But it is possible to change the palette every scanline with some [tweaks](https://github.com/nesbox/TIC-80/wiki/palette#more-than-16-colors), resulting in max. 2176 colors on screen.
 
 **mulTICcolor** converts an image (240 x 136 pixels) to a version with max. 16 colors per line.
-The result will be saved as an image and as a [Lua](https://www.lua.org)-script with all the palettes, pixels and a display-routine.
+The result will be saved as an image and as a [Lua](https://www.lua.org)-script with all the palettes, pixels and a display-routine (when using the "o"-option).
 
 
 Information
@@ -20,7 +20,7 @@ To reduce the colors to 16 per line, there are 3 options by default to achieve t
 2. [IrfanView](https://www.irfanview.com/) (external executable)
 3. [ImageMagick](https://imagemagick.org/index.php) (external executable)
 
-You might have to adjust the paths of [IrfanView](https://www.irfanview.com/) and [ImageMagick](https://imagemagick.org/index.php) in the configfile (**mtc.cfg**).
+You might have to adjust the paths for [IrfanView](https://www.irfanview.com/) and [ImageMagick](https://imagemagick.org/index.php) in the configfile (**mtc.cfg**).
 You can also add other converters or paths for a different operating system to the config aswell. Make sure to include the two keywords **{IN}** and **{OUT}** to your entries. 
 They ensure, that the current line of the image which is written to a temporary file can be converted and imported again afterwards.
 
