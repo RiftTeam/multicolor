@@ -2,9 +2,9 @@
 -- author: Mantratronic/Rift
 -- desc:   show a mulTIColor image
 -- script: lua
-​
+
 -- CODEBLOCK
-​
+
 function setPalette(p)
 	for i=0,15 do
 		for j=0,2 do
@@ -12,7 +12,7 @@ function setPalette(p)
 		end
 	end
 end
-​
+
 --- high colour image test
 hci_numpals = 0
 hci_lp={}
@@ -36,14 +36,14 @@ function hci_init()
 		end
 		table.insert(hci_lp,currentIP)
 	end
-​
+
 	-- load image
 	local width = #gfx / hci_numpals
 	local height = hci_numpals
 	trace("width x height:"..width.."x"..height)
     hci_width = width
     hci_height = height
-​
+
 	if width <= 128 and height <= 128 then
 	
 		for i=0,width*height do
@@ -71,7 +71,7 @@ function hci_init()
             local x = i%width
             local y = i//width
 			c= tnb(gfx:sub(i+1,i+1),16)
-​
+
             if x >= 128 then
                 offset = 0x4000
                 x = x-128
@@ -90,7 +90,7 @@ function hci_init()
             local x = i%width
             local y = i//width
 			c= tnb(gfx:sub(i+1,i+1),16)
-​
+
             if y >= 128 then
                 offset = 0x4000
                 local leftover = 128 -(width-128)
@@ -118,7 +118,7 @@ function hci_draw(ft)
 	-- switch to correct bank etc
 	-- draw sprites
 	cls(0)
-​
+
     if hci_width <=128 and hci_height <=128 then
         spr(0,hci_width,0,-1,1,0,0,hci_width//8,hci_height//8)
         -- pixel by pixel
@@ -158,11 +158,11 @@ function hci_draw(ft)
             spr(256+normal_width-16 + level*16, level*leftover_width*8,128,-1,1,0,0,leftover_width,1)
         end
     end
-​
+
 	-- make sure active scan is on
 	activeScan=1
 end
-​
+
 --- high colour effect test
 hce_palettes={}
 function hce_init()
@@ -197,7 +197,7 @@ function hce_draw(ft)
 	activeScan=1
 	poke(0x3ff8,4)
 end
-​
+
 activeScan=1
 currentP={}
 currentLP={}
@@ -212,35 +212,10 @@ function SCN(l)
 		setPalette(currentP)
 	end
 end
-​
+
 hci_init()
 function TIC()
 --trace("pal length:"..(#pal/(6*16)).." | gfx length:"..(#gfx/240))
 hci_update(1)
 hci_draw(1)
 end
--- <TILES>
--- 001:eccccccccc888888caaaaaaaca888888cacccccccacc0ccccacc0ccccacc0ccc
--- 002:ccccceee8888cceeaaaa0cee888a0ceeccca0ccc0cca0c0c0cca0c0c0cca0c0c
--- 003:eccccccccc888888caaaaaaaca888888cacccccccacccccccacc0ccccacc0ccc
--- 004:ccccceee8888cceeaaaa0cee888a0ceeccca0cccccca0c0c0cca0c0c0cca0c0c
--- 017:cacccccccaaaaaaacaaacaaacaaaaccccaaaaaaac8888888cc000cccecccccec
--- 018:ccca00ccaaaa0ccecaaa0ceeaaaa0ceeaaaa0cee8888ccee000cceeecccceeee
--- 019:cacccccccaaaaaaacaaacaaacaaaaccccaaaaaaac8888888cc000cccecccccec
--- 020:ccca00ccaaaa0ccecaaa0ceeaaaa0ceeaaaa0cee8888ccee000cceeecccceeee
--- </TILES>
-
--- <WAVES>
--- 000:00000000ffffffff00000000ffffffff
--- 001:0123456789abcdeffedcba9876543210
--- 002:0123456789abcdef0123456789abcdef
--- </WAVES>
-
--- <SFX>
--- 000:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000304000000000
--- </SFX>
-
--- <PALETTE>
--- 000:1a1c2c5d275db13e53ef7d57ffcd75a7f07038b76425717929366f3b5dc941a6f673eff7f4f4f494b0c2566c86333c57
--- </PALETTE>
-
