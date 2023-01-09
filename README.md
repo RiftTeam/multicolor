@@ -6,9 +6,9 @@ mulTICcolor
 A converter for mulitcolor-mode on the [TIC-80](https://tic80.com/).
 
 The [TIC-80](https://tic80.com/) normaly supports a max. [resolution](https://github.com/nesbox/TIC-80/wiki/display) of 240 pixels x 136 pixels with a [palette](https://github.com/nesbox/TIC-80/wiki/palette) of 16 RGB-colors.
-But it is possible to change the palette every scanline with some [tweaks](https://github.com/nesbox/TIC-80/wiki/palette#more-than-16-colors), resulting in max. 2176 colors on screen.
+But it is possible to change the palette every scanline with some [tweaks](https://github.com/nesbox/TIC-80/wiki/palette#more-than-16-colors), resulting in max. 2176 or even 4216 colors on screen.
 
-**mulTICcolor** converts an image (240 x 136 pixels) to a version with max. 16 colors per line.
+**mulTICcolor** converts an image (240 x 136 pixels) to a version with max. 16 or 31 colors per line.
 The result will be saved as an image and as a [Lua](https://www.lua.org)-script with all the palettes, pixels and a display-routine (when using the "o"-option).
 
 
@@ -21,22 +21,22 @@ To reduce the colors to 16 per line, there are 3 options by default to achieve t
 3. [ImageMagick](https://imagemagick.org/index.php) (external executable)
 
 You might have to adjust the paths for [IrfanView](https://www.irfanview.com/) and [ImageMagick](https://imagemagick.org/index.php) in the configfile (**mtc.cfg**).
-You can also add other converters or paths for a different operating system to the config aswell. Make sure to include the two keywords **{IN}** and **{OUT}** to your entries. 
-They ensure, that the current line of the image which is written to a temporary file can be converted and imported again afterwards.
+You can also add other converters or paths for a different operating system to the config aswell. Make sure to include the three keywords **{IN}**, **{OUT}** and **{RANGE}** to your entries. 
+They ensure, that the current line of the image which is written to a temporary file can be converted and imported again afterwards. There is an optional keyword **{TEMPDIR}**, which can be used to store additional files for a converter like [IrfanView](https://www.irfanview.com/), if needed.
 
 Based on the source image, all available options should be tried and the best result can be used directly.
 But it is recommended to manually edit/optimize the best result by the creator of the original image.
 
 When using the -o option, a .[lua](https://www.lua.org)-script will be generated (too), which contains the palettes and pixel data.
-The **pal**-variable will contain 136 palettes with 16 RGB-colors each in hex (from 00 to ff).
-The **gfx**-variable will contain 240 x 136 pixels (color-index in hex, from 0 to f).
+The **pal**-variable will contain 136 palettes with 16 or 31 RGB-colors, each in hex (from 00 to ff).
+The **gfx**-variable will contain 240 x 136 pixels (color-index in hex, from 0 to f with 16 colors / from 00 to 1e with 31 colors).
 When using [RLE (Run-length encoding)](https://en.wikipedia.org/wiki/Run-length_encoding) the pixels are stored in the **rle**-variable.
 
 
 Requirements
 ============
 
-- Python (3.6, 3.7, 3.8, 3.9, 3.10) - https://www.python.org/
+- Python (3.6, or greater) - https://www.python.org/
 - Pillow (Python Imaging Library) - https://pypi.org/project/Pillow/
 
 
@@ -74,6 +74,10 @@ Use a different converter to reduce the colors of the image per line:
 	
 	Have a look at the provided config file "mtc.cfg" for the paths and binaries.
 
+Switch the range to 31 colors per line to get a, hopefully, better result:
+
+    $ multicolor.py kittens.png -c iview -r 31 -o somemorecolors
+
 Encode the pixel data as rle (run-length encoded) to save some space:
 
     $ multicolor.py kittens.png -o smallerscript -m rle
@@ -94,12 +98,14 @@ Commandline options
       -c, --converter    converter: pil (default), see mtc.cfg for more
       -o, --output       outputfile for multicolor values (.lua)
       -f, --force        force overwrite of outputfile when it already exist
+      -r, --range        range of colors per line (16 or 31)
       -m, --mode         mode to encode values: raw (default) or rle
       -v, --version      show version info
       -h, --help         show this help
     
     The optional arguments are only needed if the default setting does not meet the
     required needs. A specific name for the outputfile can be set (-o / --output).
+    The range of maximum colors per line (of the image file) can be set to 16 or 31.
 	Mode (-m / --mode) to encode the pixel data via rle (run-length encoding) or as
 	raw, which is the default. To reduce the colors of the image per line, various
 	converters (-c / --converter) can be used. These can be configured in "mtc.cfg".
@@ -109,8 +115,9 @@ Commandline options
 	  multicolor imagefile.png
       multicolor graphic.gif -o multicolor.lua
       multicolor pixels.png -c iview -o mydata.lua
-      multicolor truecol.gif -m rle -o compress.lua
-      multicolor logo.png -o overwriteme.lua -f
+      multicolor colorful.gif -r 16 -o only16.lua
+      multicolor truecol.png -m rle -o compress.lua
+      multicolor logo.gif -o overwriteme.lua
 
 
 Files
@@ -120,7 +127,8 @@ Files
 * **images/piggie_power_without_the_price.png** (example image (23960 colors), [original](https://demozoo.org/graphics/205191/) by [Bossman](https://demozoo.org/sceners/32053/)/[Rift](https://www.pouet.net/groups.php?which=11428))
 * **images/kittens.png** (example image (23704 colors), [original](https://demozoo.org/graphics/302070/) by [Evil](https://demozoo.org/sceners/5794/)/[Accession](https://www.pouet.net/groups.php?which=1004))
 * **images/dryad.png** (example image (17056 colors), [original](https://demozoo.org/graphics/266505/) by [Lycan](https://demozoo.org/sceners/21309/)/[LNX](https://www.pouet.net/groups.php?which=11760))
-* **components/display.lua** (the display-routine)
+* **components/display16.lua** (the display-routine for 16 colors)
+* **components/display31.lua** (the display-routine for 31 colors)
 * **components/rle-decoder.lua** (the decoder when using rle-mode)
 
 

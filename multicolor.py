@@ -30,12 +30,14 @@ class ArgumentParser(argparse.ArgumentParser):
               "  -c, --converter    converter: pil (default), see mtc.cfg for more\n"
               "  -o, --output       outputfile for multicolor values (.lua)\n"
               "  -f, --force        force overwrite of outputfile when it already exist\n"
+              "  -r, --range        range of colors per line (16 or 31)\n"
               "  -m, --mode         mode to encode values: raw (default) or rle\n"
               "  -v, --version      show version info\n"
               "  -h, --help         show this help\n"
               "\n"
               "The optional arguments are only needed if the default setting does not meet the\n"
               "required needs. A specific name for the output file can be set (-o / --output).\n"
+              "The range of maximum colors per line (of the image file) can be set to 16 or 31.\n"
               "Mode (-m / --mode) to encode the pixel data via rle (run-length encoding) or as\n"
               "raw, which is the default. To reduce the colors of the image per line, various\n"
               "converters (-c / --converter) can be used. These can be configured in \"mtc.cfg\".\n"
@@ -45,8 +47,9 @@ class ArgumentParser(argparse.ArgumentParser):
               "  multicolor imagefile.png \n"
               "  multicolor graphic.gif -o multicolor.lua\n"
               "  multicolor pixels.png -c iview -o mydata.lua\n"
-              "  multicolor truecol.gif -m rle -o compress.lua\n"
-              "  multicolor logo.png -o overwriteme.lua -f\n", file=sys.stderr)
+              "  multicolor colorful.gif -r 16 -o only16.lua\n"
+              "  multicolor truecol.png -m rle -o compress.lua\n"
+              "  multicolor logo.gif -o overwriteme.lua -f\n", file=sys.stderr)
         self.exit(1, '%s: ERROR: %s\n' % (self.prog, message))
 
 
@@ -72,6 +75,15 @@ parser.add_argument('-o', '--output',
 parser.add_argument('-f', '--force',
                     action='store_true',
                     help='force overwrite of outputfile')
+parser.add_argument('-r', '--range',
+                    metavar='range',
+                    const=16,
+                    default=16,
+                    choices=(16, 31),
+                    type=int,
+                    nargs='?',
+                    action='store',
+                    help='range of colors per line (16 or 31)')
 parser.add_argument('-m', '--mode',
                     metavar='mode',
                     const='raw',
@@ -83,8 +95,13 @@ parser.add_argument('-m', '--mode',
                     help='encode data in other formats than raw')
 parser.add_argument('-v', '--version',
                     action='version',
-                    version='%(prog)s 0.9')
+                    version='%(prog)s 1.0')
 args = parser.parse_args()
+
+
+# DEBUG
+if args.range == 31 and args.mode == "rle":
+    parser.error("RLE is currently not supported for 31 colors!")
 
 
 # get commandline arguments
@@ -92,12 +109,19 @@ imageFile = args.image
 outputConv = args.converter
 outputFile = args.output
 outputEnc = args.mode
+outputRange = args.range
 outputForce = args.force
 
 
 # set or init vars
 configFile = "mtc.cfg"
+iniFile = ""
 convCommand = None
+convBinary = None
+if outputRange > 16:
+    digits = 2
+else:
+    digits = 1
 
 
 # load image file
@@ -124,6 +148,7 @@ print("  Resolution: " + str(orgSizeX) + " x " + str(orgSizeY))
 # get image colors & amount
 orgColors = orgImg.convert('RGB').getcolors(maxcolors=(orgSizeX * orgSizeY))
 print("      Colors: " + str(len(orgColors)))
+print("       Range: " + str(outputRange) + " colors")
 
 
 # check image dimensions
@@ -162,16 +187,42 @@ if outputConv != 'pil':
                 print("ERROR: {IN} and/or {OUT} are missing")
                 exit(1)
             else:
+                Range = str(outputRange)
                 tmpDir = (tempfile.gettempdir())
+                # print(tmpDir)  # DEBUG
                 inFile = os.path.join(tmpDir, 'mtc-infile' + orgFormat)
                 outFile = os.path.join(tmpDir, 'mtc-outfile' + orgFormat)
                 convSubproc = convCommand.replace('{IN}', '"' + inFile + '"')
                 convSubproc = convSubproc.replace('{OUT}', '"' + outFile + '"')
+                # Range & TempDir are optional, no need for checks
+                convSubproc = convSubproc.replace('{RANGE}', '"' + Range + '"')
+                convSubproc = convSubproc.replace('{TEMPDIR}', '"' + tmpDir + '"')
             # check converter binary
             convBinary = convCommand.split('"')[1].split('"')[0]
             if not os.path.isfile(convBinary):
                 print("ERROR: " + convBinary + " not found")
                 exit(1)
+
+
+# create ini-file for Irfanview if needed
+if convBinary is not None:
+    # print(os.path.basename(convBinary))  # DEBUG
+    if "i_view" in os.path.basename(convBinary):
+        if "32" in os.path.basename(convBinary):
+            iniFile = os.path.join(tmpDir, 'i_view32.ini')
+        else:
+            iniFile = os.path.join(tmpDir, 'i_view64.ini')
+        # print(iniFile)  # DEBUG
+        try:
+            with open(iniFile, 'w') as file:
+                file.write("[Batch]\n")
+                file.write("AdvUseBPP=1\n")
+                file.write("AdvBPP=" + str(Range) + "\n")
+                file.write("AdvUseFSDither=0\n")
+                file.write("AdvDecrQuality=1\n")
+        except Exception as error:
+            print("ERROR: " + str(error), file=sys.stderr)
+            exit(1)
 
 
 # function when using an external converter
@@ -191,20 +242,20 @@ def ext_conv(convLine):
     return doneLine
 
 
-# convert image to 16 colors per line
+# convert image to range of colors per line
 print("   Converting with " + outputConv + "...")
 offsetY = 0
 toReduce = 0
 alreadyOk = 0
 while offsetY < orgSizeY:
-    Line = orgImg.crop((0, offsetY, orgSizeX, offsetY+1))
+    Line = orgImg.crop((0, offsetY, orgSizeX, offsetY + 1))
     Colors = Line.convert('RGB').getcolors(maxcolors=(orgSizeX))
-    if len(Colors) > 16:
+    if len(Colors) > outputRange:
         if outputConv == 'pil':
-            newLine = Line.convert("P", palette=Image.ADAPTIVE, colors=16)
+            newLine = Line.convert("P", palette=Image.ADAPTIVE, colors=outputRange)
         else:
             extLine = ext_conv(Line)
-            newLine = extLine.convert("P", palette=Image.ADAPTIVE, colors=16)
+            newLine = extLine.convert("P", palette=Image.ADAPTIVE, colors=outputRange)
         newImg.paste(newLine, (0, offsetY))
         toReduce = toReduce + 1
     else:
@@ -221,6 +272,8 @@ if outputConv != 'pil':
         os.remove(inFile)
     if os.path.isfile(outFile):
         os.remove(outFile)
+    if os.path.isfile(iniFile):
+        os.remove(iniFile)
 
 
 # get values from converted image
@@ -230,23 +283,27 @@ Palette = ""
 offsetY = 0
 offsetX = 0
 while offsetY < orgSizeY:
-    Line = newImg.crop((0, offsetY, orgSizeX, offsetY+1))
-    rawLine = Line.convert("P", palette=Image.ADAPTIVE, colors=16)
+    Line = newImg.crop((0, offsetY, orgSizeX, offsetY + 1))
+    rawLine = Line.convert("P", palette=Image.ADAPTIVE, colors=outputRange)
     # pixel values in hex (0 to f)
     while offsetX < orgSizeX:
         palIndex = rawLine.getpixel((offsetX, 0))
-        hexVal = '%0*x' % (1, palIndex)
+        hexVal = '%0*x' % (digits, palIndex)
         Pixels = Pixels + hexVal
         offsetX = offsetX + 1
+        # print(palIndex, hexVal)  # DEBUG
+    # exit(1)  # DEBUG
     offsetY = offsetY + 1
     offsetX = 0
     # palette in hex (00 to ff)
     rawPalette = rawLine.getpalette()
-    rgbEntries = 16 * 3
+    rgbEntries = outputRange * 3
     rgbPalette = rawPalette[:rgbEntries]
     for entry in rgbPalette:
         hexVal = '%0*x' % (2, entry)
+        # print(hexVal)  # DEBUG
         Palette = Palette + hexVal
+    # exit(1)  # DEBUG
 
 
 # compress pixel data (rle: only append number if value repeats more than twice)
@@ -255,14 +312,14 @@ if outputEnc == 'rle':
     prev = ""
     count = 1
     for symbol in Pixels:
-        value = chr(int(symbol, 16)+65)
+        value = chr(int(symbol, 16) + 65)
         if value != prev:
             if prev:
                 enc = enc + prev
                 if count == 2:
                     enc = enc + prev
                 elif count > 2:
-                    enc = enc + str(count-1)
+                    enc = enc + str(count - 1)
             count = 1
             prev = value
         else:
@@ -271,7 +328,7 @@ if outputEnc == 'rle':
     if count == 2:
         enc = enc + prev
     elif count > 2:
-        enc = enc + str(count-1)
+        enc = enc + str(count - 1)
     if not enc[-1].isdigit():
         enc = enc + "0"
 
@@ -295,12 +352,12 @@ def check_file(outputName):
 
 
 # include display component for the outputfile
-displayFile = os.path.join(os.path.curdir, "components", "display.lua")
+displayFile = os.path.join(os.path.curdir, "components", "display" + str(outputRange) + ".lua")
 if os.path.isfile(displayFile):
     with open(displayFile, "r") as file:
         fileLines = [line.strip('\n') for line in file.readlines()]
         codeStart = next((index for index, tag in enumerate(fileLines) if tag == '-- CODEBLOCK'), -1)
-        compDisplay = "\n".join(fileLines[codeStart+1:]) + "\n"
+        compDisplay = "\n".join(fileLines[codeStart + 1:]) + "\n"
 else:
     compDisplay = "\n no display component found!\n"
 
@@ -312,7 +369,7 @@ if outputEnc == "rle":
         with open(decoderFile, "r") as file:
             fileLines = [line.strip('\n') for line in file.readlines()]
             codeStart = next((index for index, tag in enumerate(fileLines) if tag == '-- CODEBLOCK'), -1)
-            compDecoder = "\n".join(fileLines[codeStart+1:]) + "\n"
+            compDecoder = "\n".join(fileLines[codeStart + 1:]) + "\n"
     else:
         compDecoder = "\n no decoder component found!\n"
 else:
