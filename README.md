@@ -105,7 +105,7 @@ Commandline options
     
     The optional arguments are only needed if the default setting does not meet the
     required needs. A specific name for the outputfile can be set (-o / --output).
-    The range of maximum colors per line (of the image file) can be set to 16 or 31.
+    The maximum range (-r / --range) of colors per line, can be set to 16 or 31.
 	Mode (-m / --mode) to encode the pixel data via rle (run-length encoding) or as
 	raw, which is the default. To reduce the colors of the image per line, various
 	converters (-c / --converter) can be used. These can be configured in "mtc.cfg".
@@ -127,9 +127,11 @@ Files
 * **images/piggie_power_without_the_price.png** (example image (23960 colors), [original](https://demozoo.org/graphics/205191/) by [Bossman](https://demozoo.org/sceners/32053/)/[Rift](https://www.pouet.net/groups.php?which=11428))
 * **images/kittens.png** (example image (23704 colors), [original](https://demozoo.org/graphics/302070/) by [Evil](https://demozoo.org/sceners/5794/)/[Accession](https://www.pouet.net/groups.php?which=1004))
 * **images/dryad.png** (example image (17056 colors), [original](https://demozoo.org/graphics/266505/) by [Lycan](https://demozoo.org/sceners/21309/)/[LNX](https://www.pouet.net/groups.php?which=11760))
+* **images/gameboys.png** (example image (18538 colors), [original](https://commons.wikimedia.org/wiki/File:Chiptune-Setup-Game-Boys.jpg) by [Lucius Kwok](https://www.flickr.com/photos/luciuskwok/))
 * **components/display16.lua** (the display-routine for 16 colors)
 * **components/display31.lua** (the display-routine for 31 colors)
-* **components/rle-decoder.lua** (the decoder when using rle-mode)
+* **components/rle-decoder16.lua** (the decoder when using rle-mode for 16 colors)
+* **components/rle-decoder31.lua** (the decoder when using rle-mode for 31 colors)
 
 
 Disclaimer

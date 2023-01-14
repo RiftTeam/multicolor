@@ -4,7 +4,7 @@
 #
 # Hint: python -m pip install pillow (install PIL on Windows)
 #
-# last updated by Decca / RiFT on 26.03.2021 23:25
+# last updated by Decca / RiFT on 14.01.2023 19:05
 #
 
 
@@ -37,7 +37,7 @@ class ArgumentParser(argparse.ArgumentParser):
               "\n"
               "The optional arguments are only needed if the default setting does not meet the\n"
               "required needs. A specific name for the output file can be set (-o / --output).\n"
-              "The range of maximum colors per line (of the image file) can be set to 16 or 31.\n"
+              "The maximum range (-r / --range) of colors per line, can be set to 16 or 31.\n"
               "Mode (-m / --mode) to encode the pixel data via rle (run-length encoding) or as\n"
               "raw, which is the default. To reduce the colors of the image per line, various\n"
               "converters (-c / --converter) can be used. These can be configured in \"mtc.cfg\".\n"
@@ -95,13 +95,13 @@ parser.add_argument('-m', '--mode',
                     help='encode data in other formats than raw')
 parser.add_argument('-v', '--version',
                     action='version',
-                    version='%(prog)s 1.0')
+                    version='%(prog)s 1.0b')
 args = parser.parse_args()
 
 
 # DEBUG
-if args.range == 31 and args.mode == "rle":
-    parser.error("RLE is currently not supported for 31 colors!")
+# if args.range == 31 and args.mode == "rle":
+#     parser.error("RLE is currently not supported for 31 colors!")
 
 
 # get commandline arguments
@@ -306,8 +306,8 @@ while offsetY < orgSizeY:
     # exit(1)  # DEBUG
 
 
-# compress pixel data (rle: only append number if value repeats more than twice)
-if outputEnc == 'rle':
+# compress 16 colors pixel data (rle: only append number if value repeats more than twice)
+if outputEnc == 'rle' and digits == 1:
     enc = ""
     prev = ""
     count = 1
@@ -331,6 +331,34 @@ if outputEnc == 'rle':
         enc = enc + str(count - 1)
     if not enc[-1].isdigit():
         enc = enc + "0"
+
+
+# compress 31 colors pixel data (rle: only append number if value repeats more than twice)
+if outputEnc == 'rle' and digits == 2:
+    enc = ""
+    prev = ""
+    count = 1
+    for char1, char2 in zip(Pixels[::digits], Pixels[digits - 1::digits]):
+        value = chr(int(char1 + char2, 16) + 65)
+        if value != prev:
+            if prev:
+                enc = enc + prev
+                if count == 2:
+                    enc = enc + prev
+                elif count > 2:
+                    enc = enc + str(count - 1)
+            count = 1
+            prev = value
+        else:
+            count = count + 1
+    enc = enc + prev
+    if count == 2:
+        enc = enc + prev
+    elif count > 2:
+        enc = enc + str(count - 1)
+    if not enc[-1].isdigit():
+        enc = enc + "0"
+    enc = enc.replace('\\', '&')
 
 
 # show final image when no outputfile
@@ -364,7 +392,7 @@ else:
 
 # include decoder component for the outputfile
 if outputEnc == "rle":
-    decoderFile = os.path.join(os.path.curdir, "components", "rle-decoder.lua")
+    decoderFile = os.path.join(os.path.curdir, "components", "rle-decoder" + str(outputRange) + ".lua")
     if os.path.isfile(decoderFile):
         with open(decoderFile, "r") as file:
             fileLines = [line.strip('\n') for line in file.readlines()]
