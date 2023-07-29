@@ -15,7 +15,7 @@ The result will be saved as an image and as a [Lua](https://www.lua.org)-script 
 Information
 ===========
 
-To reduce the colors to 16 per line, there are 3 options by default to achieve this:
+To reduce the colors to 16/31 per line, there are 3 options by default to achieve this:
 1. [PIL](https://pillow.readthedocs.io/en/stable/) (Python Image Library, built-in)
 2. [IrfanView](https://www.irfanview.com/) (external executable)
 3. [ImageMagick](https://imagemagick.org/index.php) (external executable)
@@ -145,10 +145,10 @@ The icon/logo consists of the [Sweetie 16](https://lospec.com/palette-list/sweet
 Bug tracker
 ===========
 
-If you have any suggestions, bug reports or annoyances please report them to the issue tracker at https://github.com/PhilSwiss/multicolor/issues
+If you have any suggestions, bug reports or annoyances please report them to the issue tracker at https://github.com/RiftTeam/multicolor/issues
 
 
 Contributing
 ============
 
-Development of `mulTIColor` happens at GitHub: https://github.com/PhilSwiss/multicolor
+Development of `mulTIColor` happens at GitHub: https://github.com/RiftTeam/multicolor
