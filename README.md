@@ -30,7 +30,7 @@ But it is recommended to manually edit/optimize the best result by the creator o
 When using the -o option, a .[lua](https://www.lua.org)-script will be generated (too), which contains the palettes and pixel data.
 The **pal**-variable will contain 136 palettes with 16 or 31 RGB-colors, each in hex (from 00 to ff).
 The **gfx**-variable will contain 240 x 136 pixels (color-index in hex, from 0 to f with 16 colors / from 00 to 1e with 31 colors).
-When using [RLE (Run-length encoding)](https://en.wikipedia.org/wiki/Run-length_encoding) the pixels are stored in the **rle**-variable.
+When using [RLE (Run-length encoding)](https://en.wikipedia.org/wiki/Run-length_encoding) the palettes and pixels are stored in the **rlp**- and **rlg**-variable.
 
 
 Requirements
