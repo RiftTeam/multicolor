@@ -1,4 +1,4 @@
--- title:  RLE Decoder31
+-- title:  RLE Decoder31 v2
 -- author: Decca/Rift
 -- desc:   decode rle to global var
 -- script: lua
@@ -21,16 +21,22 @@ local rle = "MK4M3PMMKKM2NMMCFM2KMMEPM2PMMKKMMK4M3KM4AK2AM2"
 -- CODEBLOCK
 
 -- the rle-decoder
-function togfx(str)
+function tovar(str,one)
   local d = "" -- (d)ecoded data
   for m, c in str:gmatch("(%D+)([^%D]+)") do -- decode rle, (m)atch & (c)ounter
     d = d .. m .. (m:sub(-1):rep(c))
   end
-  _G.gfx = "" -- global graphic variable
+  local r = "" -- (r)eturned data
   for v = 1,#d,1 do
-    gfx = gfx .. string.format("%02x",math.abs(string.byte(d:sub(v,v))-65)) -- get (c)olor value in hex (2 digits)
+    if one then
+      r = r .. string.format("%x",string.byte(d:sub(v,v))-65) -- get (c)olor value in hex (1 digit / palette)
+    else
+      r = r .. string.format("%02x",math.abs(string.byte(d:sub(v,v))-65)) -- get (c)olor value in hex (2 digits / grafix)
+    end
   end
+  return r
 end
 
 -- call the decoder
-togfx(rle)
+pal = tovar(rlp,true)
+gfx = tovar(rlg,false)
