@@ -94,7 +94,7 @@ parser.add_argument('-m', '--mode',
                     help='encode data in other formats than raw')
 parser.add_argument('-v', '--version',
                     action='version',
-                    version='%(prog)s 1.0b')
+                    version='%(prog)s 1.1')
 args = parser.parse_args()
 
 
