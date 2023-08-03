@@ -4,8 +4,7 @@
 #
 # Hint: python -m pip install pillow (install PIL on Windows)
 #
-# last updated by Decca / RiFT on 14.01.2023 19:05
-#
+# last updated by Decca / RiFT on 03.08.2023 13:00
 
 
 # import modules
@@ -97,11 +96,6 @@ parser.add_argument('-v', '--version',
                     action='version',
                     version='%(prog)s 1.0b')
 args = parser.parse_args()
-
-
-# DEBUG
-# if args.range == 31 and args.mode == "rle":
-#     parser.error("RLE is currently not supported for 31 colors!")
 
 
 # get commandline arguments
@@ -307,11 +301,11 @@ while offsetY < orgSizeY:
 
 
 # compress 16 colors pixel data (rle: only append number if value repeats more than twice)
-if outputEnc == 'rle' and digits == 1:
+def encode_rle16(data):
     enc = ""
     prev = ""
     count = 1
-    for symbol in Pixels:
+    for symbol in data:
         value = chr(int(symbol, 16) + 65)
         if value != prev:
             if prev:
@@ -331,14 +325,15 @@ if outputEnc == 'rle' and digits == 1:
         enc = enc + str(count - 1)
     if not enc[-1].isdigit():
         enc = enc + "0"
+    return enc
 
 
 # compress 31 colors pixel data (rle: only append number if value repeats more than twice)
-if outputEnc == 'rle' and digits == 2:
+def encode_rle31(data):
     enc = ""
     prev = ""
     count = 1
-    for char1, char2 in zip(Pixels[::digits], Pixels[digits - 1::digits]):
+    for char1, char2 in zip(data[::digits], data[digits - 1::digits]):
         value = chr(int(char1 + char2, 16) + 65)
         if value != prev:
             if prev:
@@ -359,6 +354,7 @@ if outputEnc == 'rle' and digits == 2:
     if not enc[-1].isdigit():
         enc = enc + "0"
     enc = enc.replace('\\', '&')
+    return enc
 
 
 # show final image when no outputfile
@@ -414,11 +410,21 @@ try:
         file.write("-- author: mulTIColor\n")
         file.write("-- script: lua\n")
         file.write("\n")
-        file.write('pal = "' + Palette + '"\n')  # write palette
-        file.write("\n")
-        if outputEnc == 'rle':
-            file.write('rle = "' + enc + '"\n')  # write RLE
+        if outputEnc == 'rle' and digits == 1:
+            pal = encode_rle16(Palette)  # RLE encode palette (0-f/1 digit)
+            file.write('rlp = "' + pal + '"\n')  # write RLE palette
+            file.write("\n")
+            enc = encode_rle16(Pixels)  # RLE encode pixels (0-f/1 digit)
+            file.write('rlg = "' + enc + '"\n')  # write RLE pixels
+        elif outputEnc == 'rle' and digits == 2:
+            pal = encode_rle16(Palette)  # RLE encode palette (still 0-f/1 digit)
+            file.write('rlp = "' + pal + '"\n')  # write RLE palette
+            file.write("\n")
+            enc = encode_rle31(Pixels)  # RLE encode pixels (31colors/2 digits)
+            file.write('rlg = "' + enc + '"\n')  # write RLE pixels
         else:
+            file.write('pal = "' + Palette + '"\n')  # write palette (RAW)
+            file.write("\n")
             file.write('gfx = "' + Pixels + '"\n')  # write pixels (RAW)
         file.write(compDecoder)
         file.write(compDisplay)
