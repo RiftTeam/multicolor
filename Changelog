@@ -1,0 +1,13 @@
+2022-03-27  Decca (Philipp) & Mantratronic (Roceal)
+		* Version 0.9
+                * Support for 16 colors per line
+		* Initial release (beta)
+
+2023-01-15  Decca (Philipp) & Mantratronic (Roceal)
+		* Version 1.0
+		* Added support for 31 colors per line
+
+2023-08-03  Decca (Philipp)
+		* Version 1.1
+                * Released to the public
+		* Palette-data now also rle-compressed
