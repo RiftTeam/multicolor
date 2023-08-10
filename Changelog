@@ -11,3 +11,7 @@
 		* Version 1.1
                 * Released to the public
 		* Palette-data now also rle-compressed
+
+2023-08-10  Decca (Philipp)
+		* Version 1.2
+                * Set a bordercolor to prevent streaking

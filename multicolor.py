@@ -4,7 +4,7 @@
 #
 # Hint: python -m pip install pillow (install PIL on Windows)
 #
-# last updated by Decca / RiFT on 03.08.2023 13:00
+# last updated by Decca / RiFT on 01.08.2023 10:00
 
 
 # import modules
@@ -30,6 +30,7 @@ class ArgumentParser(argparse.ArgumentParser):
               "  -o, --output       outputfile for multicolor values (.lua)\n"
               "  -f, --force        force overwrite of outputfile when it already exist\n"
               "  -r, --range        range of colors per line (16 or 31)\n"
+              "  -b, --bordercolor  bordercolor (R G B) to prevent streaking\n"
               "  -m, --mode         mode to encode values: raw (default) or rle\n"
               "  -v, --version      show version info\n"
               "  -h, --help         show this help\n"
@@ -37,6 +38,8 @@ class ArgumentParser(argparse.ArgumentParser):
               "The optional arguments are only needed if the default setting does not meet the\n"
               "required needs. A specific name for the output file can be set (-o / --output).\n"
               "The maximum range (-r / --range) of colors per line, can be set to 16 or 31.\n"
+              "To prevent colorstreaking in the border, a specific color (-b / --bordercolor)\n"
+              "can be set. WARNING: this will reduce the overall colors to 15 or 30 per line!\n"
               "Mode (-m / --mode) to encode the pixel data via rle (run-length encoding) or as\n"
               "raw, which is the default. To reduce the colors of the image per line, various\n"
               "converters (-c / --converter) can be used. These can be configured in \"mtc.cfg\".\n"
@@ -47,6 +50,7 @@ class ArgumentParser(argparse.ArgumentParser):
               "  multicolor graphic.gif -o multicolor.lua\n"
               "  multicolor pixels.png -c iview -o mydata.lua\n"
               "  multicolor colorful.gif -r 16 -o only16.lua\n"
+              "  multicolor border.jpg -r 31 -b 255 127 64 -o frame.lua"
               "  multicolor truecol.png -m rle -o compress.lua\n"
               "  multicolor logo.gif -o overwriteme.lua -f\n", file=sys.stderr)
         self.exit(1, '%s: ERROR: %s\n' % (self.prog, message))
@@ -83,6 +87,12 @@ parser.add_argument('-r', '--range',
                     nargs='?',
                     action='store',
                     help='range of colors per line (16 or 31)')
+parser.add_argument('-b', '--bordercolor',
+                    metavar='255',
+                    type=int,
+                    nargs=3,
+                    action='store',
+                    help='bordercolor (R G B) to prevent streaking')
 parser.add_argument('-m', '--mode',
                     metavar='mode',
                     const='raw',
@@ -103,6 +113,7 @@ imageFile = args.image
 outputConv = args.converter
 outputFile = args.output
 outputEnc = args.mode
+outputBorder = args.bordercolor
 outputRange = args.range
 outputForce = args.force
 
@@ -139,15 +150,27 @@ orgSizeX, orgSizeY = orgImg.size
 print("  Resolution: " + str(orgSizeX) + " x " + str(orgSizeY))
 
 
+# check and set borderclor
+if isinstance(outputBorder, list):
+    borderColor = tuple(outputBorder)
+    print(" Bordercolor: " + str(borderColor).replace("(", "").replace(")", ""))
+    borderHex = ""
+    for color in borderColor:
+        borderHex = borderHex + str('%0*x' % (2, color))
+    # reduce colorrange per line, because of the bordercolor
+    workRange = outputRange - 1
+else:
+    workRange = outputRange
+
 # get image colors & amount
 orgColors = orgImg.convert('RGB').getcolors(maxcolors=(orgSizeX * orgSizeY))
 print("      Colors: " + str(len(orgColors)))
-print("       Range: " + str(outputRange) + " colors")
+print("       Range: " + str(workRange) + " colors")
 
 
 # check image dimensions
 if orgSizeX > 240:
-    print("ERROR: image is wieder than 240 pixels")
+    print("ERROR: image is wider than 240 pixels")
     exit(1)
 if orgSizeY > 136:
     print("ERROR: image is higher than 136 pixels")
@@ -181,7 +204,6 @@ if outputConv != 'pil':
                 print("ERROR: {IN} and/or {OUT} are missing")
                 exit(1)
             else:
-                Range = str(outputRange)
                 tmpDir = (tempfile.gettempdir())
                 # print(tmpDir)  # DEBUG
                 inFile = os.path.join(tmpDir, 'mtc-infile' + orgFormat)
@@ -189,7 +211,7 @@ if outputConv != 'pil':
                 convSubproc = convCommand.replace('{IN}', '"' + inFile + '"')
                 convSubproc = convSubproc.replace('{OUT}', '"' + outFile + '"')
                 # Range & TempDir are optional, no need for checks
-                convSubproc = convSubproc.replace('{RANGE}', '"' + Range + '"')
+                convSubproc = convSubproc.replace('{RANGE}', '"' + str(workRange) + '"')
                 convSubproc = convSubproc.replace('{TEMPDIR}', '"' + tmpDir + '"')
             # check converter binary
             convBinary = convCommand.split('"')[1].split('"')[0]
@@ -206,12 +228,11 @@ if convBinary is not None:
             iniFile = os.path.join(tmpDir, 'i_view32.ini')
         else:
             iniFile = os.path.join(tmpDir, 'i_view64.ini')
-        # print(iniFile)  # DEBUG
         try:
             with open(iniFile, 'w') as file:
                 file.write("[Batch]\n")
                 file.write("AdvUseBPP=1\n")
-                file.write("AdvBPP=" + str(Range) + "\n")
+                file.write("AdvBPP=" + str(workRange) + "\n")
                 file.write("AdvUseFSDither=0\n")
                 file.write("AdvDecrQuality=1\n")
         except Exception as error:
@@ -244,12 +265,12 @@ alreadyOk = 0
 while offsetY < orgSizeY:
     Line = orgImg.crop((0, offsetY, orgSizeX, offsetY + 1))
     Colors = Line.convert('RGB').getcolors(maxcolors=(orgSizeX))
-    if len(Colors) > outputRange:
+    if len(Colors) > workRange:
         if outputConv == 'pil':
-            newLine = Line.convert("P", palette=Image.ADAPTIVE, colors=outputRange)
+            newLine = Line.convert("P", palette=Image.ADAPTIVE, colors=workRange)
         else:
             extLine = ext_conv(Line)
-            newLine = extLine.convert("P", palette=Image.ADAPTIVE, colors=outputRange)
+            newLine = extLine.convert("P", palette=Image.ADAPTIVE, colors=workRange)
         newImg.paste(newLine, (0, offsetY))
         toReduce = toReduce + 1
     else:
@@ -277,27 +298,29 @@ Palette = ""
 offsetY = 0
 offsetX = 0
 while offsetY < orgSizeY:
+    # set bordercolor
+    if isinstance(outputBorder, list):
+        Palette = Palette + borderHex
+        palOffset = 1
+    else:
+        palOffset = 0
     Line = newImg.crop((0, offsetY, orgSizeX, offsetY + 1))
-    rawLine = Line.convert("P", palette=Image.ADAPTIVE, colors=outputRange)
+    rawLine = Line.convert("P", palette=Image.ADAPTIVE, colors=workRange)
     # pixel values in hex (0 to f)
     while offsetX < orgSizeX:
         palIndex = rawLine.getpixel((offsetX, 0))
-        hexVal = '%0*x' % (digits, palIndex)
+        hexVal = '%0*x' % (digits, (palIndex + palOffset))
         Pixels = Pixels + hexVal
         offsetX = offsetX + 1
-        # print(palIndex, hexVal)  # DEBUG
-    # exit(1)  # DEBUG
     offsetY = offsetY + 1
     offsetX = 0
     # palette in hex (00 to ff)
     rawPalette = rawLine.getpalette()
-    rgbEntries = outputRange * 3
+    rgbEntries = workRange * 3
     rgbPalette = rawPalette[:rgbEntries]
     for entry in rgbPalette:
         hexVal = '%0*x' % (2, entry)
-        # print(hexVal)  # DEBUG
         Palette = Palette + hexVal
-    # exit(1)  # DEBUG
 
 
 # compress 16 colors pixel data (rle: only append number if value repeats more than twice)

@@ -82,6 +82,10 @@ Encode the pixel data as rle (run-length encoded) to save some space:
 
     $ multicolor.py kittens.png -o smallerscript -m rle
 
+Set a bordercolor to prevent streaking (will reduce colors per line to 15/30):
+
+    $ multicolor.py gameboys.png -o blackborder -b 0 0 0
+
 
 Commandline options
 ===================
@@ -99,6 +103,7 @@ Commandline options
       -o, --output       outputfile for multicolor values (.lua)
       -f, --force        force overwrite of outputfile when it already exist
       -r, --range        range of colors per line (16 or 31)
+      -b, --bordercolor  bordercolor (R G B) to prevent streaking
       -m, --mode         mode to encode values: raw (default) or rle
       -v, --version      show version info
       -h, --help         show this help
@@ -106,6 +111,8 @@ Commandline options
     The optional arguments are only needed if the default setting does not meet the
     required needs. A specific name for the outputfile can be set (-o / --output).
     The maximum range (-r / --range) of colors per line, can be set to 16 or 31.
+    To prevent colorstreaking in the border, a specific color (-b / --bordercolor)
+    can be set. WARNING: this will reduce the overall colors to 15 or 30 per line!
 	Mode (-m / --mode) to encode the pixel data via rle (run-length encoding) or as
 	raw, which is the default. To reduce the colors of the image per line, various
 	converters (-c / --converter) can be used. These can be configured in "mtc.cfg".
@@ -116,8 +123,9 @@ Commandline options
       multicolor graphic.gif -o multicolor.lua
       multicolor pixels.png -c iview -o mydata.lua
       multicolor colorful.gif -r 16 -o only16.lua
+      multicolor border.jpg -r 31 -b 255 127 64 -o frame.lua
       multicolor truecol.png -m rle -o compress.lua
-      multicolor logo.gif -o overwriteme.lua
+      multicolor logo.gif -o overwriteme.lua -f
 
 
 Files
