@@ -8,8 +8,8 @@ A converter for mulitcolor-mode on the [TIC-80](https://tic80.com/).
 The [TIC-80](https://tic80.com/) normaly supports a max. [resolution](https://github.com/nesbox/TIC-80/wiki/display) of 240 pixels x 136 pixels with a [palette](https://github.com/nesbox/TIC-80/wiki/palette) of 16 RGB-colors.
 But it is possible to change the palette every scanline with some [tweaks](https://github.com/nesbox/TIC-80/wiki/palette#more-than-16-colors), resulting in max. 2176 or even 4216 colors on screen.
 
-**mulTICcolor** converts an image (240 x 136 pixels) to a version with max. 16 or 31 colors per line.
-The result will be saved as an image and as a [Lua](https://www.lua.org)-script with all the palettes, pixels and a display-routine (when using the "o"-option).
+**mulTICcolor** converts an image (240 x 136 pixels or smaller) to a version with max. 16 or 31 colors per line.
+The result will be saved as an image and as a [Lua](https://www.lua.org)-script with all the palettes, pixels and a display-routine (when using the "o"-option). Images with 16 or less colors (indexed) will be converted too, but with a single palette.
 
 
 Information
@@ -136,11 +136,13 @@ Files
 * **images/kittens.png** (example image (23704 colors), [original](https://demozoo.org/graphics/302070/) by [Evil](https://demozoo.org/sceners/5794/)/[Accession](https://www.pouet.net/groups.php?which=1004))
 * **images/dryad.png** (example image (17056 colors), [original](https://demozoo.org/graphics/266505/) by [Lycan](https://demozoo.org/sceners/21309/)/[LNX](https://www.pouet.net/groups.php?which=11760))
 * **images/gameboys.png** (example image (18538 colors), [original](https://commons.wikimedia.org/wiki/File:Chiptune-Setup-Game-Boys.jpg) by [Lucius Kwok](https://www.flickr.com/photos/luciuskwok/))
-* **components/display16.lua** (the display-routine for 16 colors)
-* **components/display31.lua** (the display-routine for 31 colors)
+* **images/replicaanxiety.png** (example image (16 indexed colors), [original](https://demozoo.org/graphics/3719/) by [Decca](https://demozoo.org/sceners/634/)/[Lego](https://www.pouet.net/groups.php?which=556))
+* **components/display16.lua** (the display-routine for 16 colors per line)
+* **components/display31.lua** (the display-routine for 31 colors per line)
+* **components/display.lua** (the display-routine for 16 or less indexed colors)
 * **components/rle-decoder16.lua** (the decoder when using rle-mode for 16 colors)
 * **components/rle-decoder31.lua** (the decoder when using rle-mode for 31 colors)
-
+* **components/rle-decoder.lua** (the decoder when using rle-mode for 16 or less indexed colors)
 
 Disclaimer
 ==========

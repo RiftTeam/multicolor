@@ -4,7 +4,7 @@
 #
 # Hint: python -m pip install pillow (install PIL on Windows)
 #
-# last updated by Decca / RiFT on 01.08.2023 10:00
+# last updated by Decca / RiFT on 02.10.2023 14:55
 
 
 # import modules
@@ -50,7 +50,7 @@ class ArgumentParser(argparse.ArgumentParser):
               "  multicolor graphic.gif -o multicolor.lua\n"
               "  multicolor pixels.png -c iview -o mydata.lua\n"
               "  multicolor colorful.gif -r 16 -o only16.lua\n"
-              "  multicolor border.jpg -r 31 -b 255 127 64 -o frame.lua"
+              "  multicolor border.jpg -r 31 -b 255 127 64 -o frame.lua\n"
               "  multicolor truecol.png -m rle -o compress.lua\n"
               "  multicolor logo.gif -o overwriteme.lua -f\n", file=sys.stderr)
         self.exit(1, '%s: ERROR: %s\n' % (self.prog, message))
@@ -104,7 +104,7 @@ parser.add_argument('-m', '--mode',
                     help='encode data in other formats than raw')
 parser.add_argument('-v', '--version',
                     action='version',
-                    version='%(prog)s 1.1')
+                    version='%(prog)s 1.3')
 args = parser.parse_args()
 
 
@@ -150,22 +150,30 @@ orgSizeX, orgSizeY = orgImg.size
 print("  Resolution: " + str(orgSizeX) + " x " + str(orgSizeY))
 
 
-# check and set borderclor
-if isinstance(outputBorder, list):
-    borderColor = tuple(outputBorder)
-    print(" Bordercolor: " + str(borderColor).replace("(", "").replace(")", ""))
-    borderHex = ""
-    for color in borderColor:
-        borderHex = borderHex + str('%0*x' % (2, color))
-    # reduce colorrange per line, because of the bordercolor
-    workRange = outputRange - 1
-else:
-    workRange = outputRange
-
 # get image colors & amount
 orgColors = orgImg.convert('RGB').getcolors(maxcolors=(orgSizeX * orgSizeY))
+dominantColor = max(orgColors)
 print("      Colors: " + str(len(orgColors)))
-print("       Range: " + str(workRange) + " colors")
+
+
+# check and set bordercolor
+if len(orgColors) > 16:
+    if isinstance(outputBorder, list):
+        borderColor = tuple(outputBorder)
+        print(" Bordercolor: " + str(borderColor).replace("(", "").replace(")", ""))
+        borderHex = ""
+        for color in borderColor:
+            borderHex = borderHex + str('%0*x' % (2, color))
+        # reduce colorrange per line, because of the bordercolor
+        workRange = outputRange - 1
+    else:
+        workRange = outputRange
+    print("       Range: " + str(workRange) + " colors")
+else:
+    # empty outputRange when image is not multicolor
+    workRange = outputRange
+    outputRange = ""
+    print("       Range: indexed colors")
 
 
 # check image dimensions
@@ -175,10 +183,6 @@ if orgSizeX > 240:
 if orgSizeY > 136:
     print("ERROR: image is higher than 136 pixels")
     exit(1)
-
-
-# create new image for pasting
-newImg = Image.new(mode="RGB", size=(orgSizeX, orgSizeY))
 
 
 # check and read config for external converter
@@ -240,6 +244,11 @@ if convBinary is not None:
             exit(1)
 
 
+# remove file-extension for saner filenaming
+if outputFile.endswith(".lua"):
+    outputFile = outputFile[:-len(".lua")]
+
+
 # function when using an external converter
 def ext_conv(convLine):
     # save line to reduce
@@ -257,70 +266,123 @@ def ext_conv(convLine):
     return doneLine
 
 
-# convert image to range of colors per line
-print("   Converting with " + outputConv + "...")
-offsetY = 0
-toReduce = 0
-alreadyOk = 0
-while offsetY < orgSizeY:
-    Line = orgImg.crop((0, offsetY, orgSizeX, offsetY + 1))
-    Colors = Line.convert('RGB').getcolors(maxcolors=(orgSizeX))
-    if len(Colors) > workRange:
-        if outputConv == 'pil':
-            newLine = Line.convert("P", palette=Image.ADAPTIVE, colors=workRange)
+# function to convert a multicolor-image to range of colors per line
+def convert_range():
+    print("   Converting with " + outputConv + "...")
+    offsetY = 0
+    toReduce = 0
+    alreadyOk = 0
+    while offsetY < orgSizeY:
+        Line = orgImg.crop((0, offsetY, orgSizeX, offsetY + 1))
+        Colors = Line.convert('RGB').getcolors(maxcolors=(orgSizeX))
+        if len(Colors) > workRange:
+            if outputConv == 'pil':
+                newLine = Line.convert("P", palette=Image.ADAPTIVE, colors=workRange)
+            else:
+                extLine = ext_conv(Line)
+                newLine = extLine.convert("P", palette=Image.ADAPTIVE, colors=workRange)
+            newImg.paste(newLine, (0, offsetY))
+            toReduce = toReduce + 1
         else:
-            extLine = ext_conv(Line)
-            newLine = extLine.convert("P", palette=Image.ADAPTIVE, colors=workRange)
-        newImg.paste(newLine, (0, offsetY))
-        toReduce = toReduce + 1
-    else:
-        newImg.paste(Line, (0, offsetY))
-        alreadyOk = alreadyOk + 1
-    offsetY = offsetY + 1
-print("  already ok: " + str(alreadyOk))
-print("     reduced: " + str(toReduce))
+            newImg.paste(Line, (0, offsetY))
+            alreadyOk = alreadyOk + 1
+        offsetY = offsetY + 1
+    print("  already ok: " + str(alreadyOk))
+    print("     reduced: " + str(toReduce))
+    # delete tempfiles if necessary
+    if outputConv != 'pil':
+        if os.path.isfile(inFile):
+            os.remove(inFile)
+        if os.path.isfile(outFile):
+            os.remove(outFile)
+        if os.path.isfile(iniFile):
+            os.remove(iniFile)
 
 
-# delete tempfiles if necessary
-if outputConv != 'pil':
-    if os.path.isfile(inFile):
-        os.remove(inFile)
-    if os.path.isfile(outFile):
-        os.remove(outFile)
-    if os.path.isfile(iniFile):
-        os.remove(iniFile)
-
-
-# get values from converted image
-print("   Generating data...")
-Pixels = ""
-Palette = ""
-offsetY = 0
-offsetX = 0
-while offsetY < orgSizeY:
-    # set bordercolor
-    if isinstance(outputBorder, list):
-        Palette = Palette + borderHex
-        palOffset = 1
-    else:
-        palOffset = 0
-    Line = newImg.crop((0, offsetY, orgSizeX, offsetY + 1))
-    rawLine = Line.convert("P", palette=Image.ADAPTIVE, colors=workRange)
-    # pixel values in hex (0 to f)
-    while offsetX < orgSizeX:
-        palIndex = rawLine.getpixel((offsetX, 0))
-        hexVal = '%0*x' % (digits, (palIndex + palOffset))
-        Pixels = Pixels + hexVal
-        offsetX = offsetX + 1
-    offsetY = offsetY + 1
+# function to get values from a converted multicolor-image
+def get_multicolor():
+    Pal = ""
+    Pix = ""
+    offsetY = 0
     offsetX = 0
-    # palette in hex (00 to ff)
-    rawPalette = rawLine.getpalette()
-    rgbEntries = workRange * 3
-    rgbPalette = rawPalette[:rgbEntries]
+    while offsetY < orgSizeY:
+        # set bordercolor
+        if isinstance(outputBorder, list):
+            Pal = Pal + borderHex
+            palOffset = 1
+        else:
+            palOffset = 0
+        Line = newImg.crop((0, offsetY, orgSizeX, offsetY + 1))
+        rawLine = Line.convert("P", palette=Image.ADAPTIVE, colors=workRange)
+        # pixel values in hex (0 to f)
+        while offsetX < orgSizeX:
+            palIndex = rawLine.getpixel((offsetX, 0))
+            hexVal = '%0*x' % (digits, (palIndex + palOffset))
+            Pix = Pix + hexVal
+            offsetX = offsetX + 1
+        offsetY = offsetY + 1
+        offsetX = 0
+        # palette in hex (00 to ff)
+        rawPalette = rawLine.getpalette()
+        rgbEntries = workRange * 3
+        rgbPalette = rawPalette[:rgbEntries]
+        for entry in rgbPalette:
+            hexVal = '%0*x' % (2, entry)
+            Pal = Pal + hexVal
+    return (Pix, Pal)
+
+
+# function to get values from an indexed-image
+def get_indexed():
+    # set palette for output file
+    stdPalette = "1a1c2c5d275db13e53ef7d57ffcd75a7f07038b76425717929366f3b5dc941a6f673eff7f4f4f494b0c2566c86333c57"  # SWEETIE-16 palette
+    newPalette = newImg.getpalette()  # get original palette from image
+    rgbEntries = (2 ** 4) * 3
+    rgbPalette = newPalette[:rgbEntries]
+    Pal = ""
     for entry in rgbPalette:
         hexVal = '%0*x' % (2, entry)
-        Palette = Palette + hexVal
+        Pal = Pal + hexVal
+    Pal = Pal + stdPalette[len(Pal):]  # fill up with default palette
+    # swap values (low & high nibble) for the unified decoder
+    Pal = ''.join([Pal[val:val + 2][::-1] for val in range(0, len(Pal), 2)])  # (https://stackoverflow.com/a/4606057)
+    Pix = ""
+    # get values from converted image
+    offsetY = 0
+    offsetX = 0
+    while offsetY < orgSizeY:
+        while offsetX < orgSizeX:
+            palIndex = newImg.getpixel((offsetX, offsetY))
+            hexVal = '%0*x' % (1, palIndex)
+            Pix = Pix + hexVal
+            offsetX = offsetX + 1
+            # print(palIndex, hexVal)  # DEBUG
+        # exit(1)  # DEBUG
+        offsetY = offsetY + 1
+        offsetX = 0
+    return (Pix, Pal)
+
+
+# start the conversion
+print("   Generating data...")
+if len(orgColors) > 16:
+    # create new image for pasting
+    newImg = Image.new(mode="RGB", size=(orgSizeX, orgSizeY))
+    # convert lines to color-range
+    convert_range()
+    # get multicolor values
+    Pixels, Palette = get_multicolor()
+else:
+    # check image mode and convert if neccessary
+    if orgMode != 'P':
+        newImg = orgImg.convert("P", palette=Image.ADAPTIVE, colors=len(orgColors))
+        print("     WARNING: image converted to indexed colors, results may vary")
+    else:
+        newImg = orgImg
+    # set digits to 16 colors only
+    digits = 1
+    # get indexed values
+    Pixels, Palette = get_indexed()
 
 
 # compress 16 colors pixel data (rle: only append number if value repeats more than twice)
@@ -380,6 +442,19 @@ def encode_rle31(data):
     return enc
 
 
+# compress the data if needed
+if outputEnc == 'rle':
+    if digits == 1:
+        RlePalette = encode_rle16(Palette)  # RLE encode palette (0-f/1 digit)
+        RlePixels = encode_rle16(Pixels)  # RLE encode pixels (0-f/1 digit)
+    if digits == 2:
+        RlePalette = encode_rle16(Palette)  # RLE encode palette (still 0-f/1 digit)
+        RlePixels = encode_rle31(Pixels)  # RLE encode pixels (31colors/2 digits)
+else:
+    RawPalette = Palette
+    RawPixels = Pixels
+
+
 # show final image when no outputfile
 if not isinstance(outputFile, str):
     print("  try to show image...")
@@ -399,26 +474,28 @@ def check_file(outputName):
 
 
 # include display component for the outputfile
-displayFile = os.path.join(os.path.curdir, "components", "display" + str(outputRange) + ".lua")
+displayFile = os.path.join(os.path.dirname(__file__), "components", "display" + str(outputRange) + ".lua")
 if os.path.isfile(displayFile):
     with open(displayFile, "r") as file:
         fileLines = [line.strip('\n') for line in file.readlines()]
         codeStart = next((index for index, tag in enumerate(fileLines) if tag == '-- CODEBLOCK'), -1)
         compDisplay = "\n".join(fileLines[codeStart + 1:]) + "\n"
 else:
-    compDisplay = "\n no display component found!\n"
+    print("ERROR: no display component found")
+    compDisplay = "\n-- ERROR: no display component found!\n"
 
 
 # include decoder component for the outputfile
 if outputEnc == "rle":
-    decoderFile = os.path.join(os.path.curdir, "components", "rle-decoder" + str(outputRange) + ".lua")
+    decoderFile = os.path.join(os.path.dirname(__file__), "components", "rle-decoder" + str(outputRange) + ".lua")
     if os.path.isfile(decoderFile):
         with open(decoderFile, "r") as file:
             fileLines = [line.strip('\n') for line in file.readlines()]
             codeStart = next((index for index, tag in enumerate(fileLines) if tag == '-- CODEBLOCK'), -1)
             compDecoder = "\n".join(fileLines[codeStart + 1:]) + "\n"
     else:
-        compDecoder = "\n no decoder component found!\n"
+        print("ERROR: no decoder component found")
+        compDecoder = "\n-- ERROR: no decoder component found!\n"
 else:
     compDecoder = ""
 
@@ -433,22 +510,17 @@ try:
         file.write("-- author: mulTIColor\n")
         file.write("-- script: lua\n")
         file.write("\n")
-        if outputEnc == 'rle' and digits == 1:
-            pal = encode_rle16(Palette)  # RLE encode palette (0-f/1 digit)
-            file.write('rlp = "' + pal + '"\n')  # write RLE palette
+        if outputEnc == 'rle':
+            file.write('rlp = "' + RlePalette + '"\n')  # write RLE palette
             file.write("\n")
-            enc = encode_rle16(Pixels)  # RLE encode pixels (0-f/1 digit)
-            file.write('rlg = "' + enc + '"\n')  # write RLE pixels
-        elif outputEnc == 'rle' and digits == 2:
-            pal = encode_rle16(Palette)  # RLE encode palette (still 0-f/1 digit)
-            file.write('rlp = "' + pal + '"\n')  # write RLE palette
-            file.write("\n")
-            enc = encode_rle31(Pixels)  # RLE encode pixels (31colors/2 digits)
-            file.write('rlg = "' + enc + '"\n')  # write RLE pixels
+            file.write('rlg = "' + RlePixels + '"\n')  # write RLE pixels
         else:
-            file.write('pal = "' + Palette + '"\n')  # write palette (RAW)
+            file.write('pal = "' + RawPalette + '"\n')  # write palette (RAW)
             file.write("\n")
-            file.write('gfx = "' + Pixels + '"\n')  # write pixels (RAW)
+            file.write('gfx = "' + RawPixels + '"\n')  # write pixels (RAW)
+        if len(orgColors) <= 16:
+            file.write("\n")
+            file.write('res = ' + str(orgSizeX - 1) + '\n')  # write resolution of lines
         file.write(compDecoder)
         file.write(compDisplay)
 except Exception as error:
