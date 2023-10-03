@@ -15,6 +15,7 @@ function tomem(dat,ofs,len)
 end
 
 -- write to memory
+cls()
 tomem(pal,32640,95)
 tomem(gfx,0,res)
 
