@@ -1,14 +1,14 @@
 ![mulTIColor Logo](https://repository-images.githubusercontent.com/474191033/6b4ec005-585c-4c27-a4f4-b6eea5f3b6ea)
 
-mulTICcolor
+mulTIColor
 ===========
 
-A converter for mulitcolor-mode on the [TIC-80](https://tic80.com/).
+A converter for multicolor-mode on the [TIC-80](https://tic80.com/).
 
 The [TIC-80](https://tic80.com/) normaly supports a max. [resolution](https://github.com/nesbox/TIC-80/wiki/display) of 240 pixels x 136 pixels with a [palette](https://github.com/nesbox/TIC-80/wiki/palette) of 16 RGB-colors.
 But it is possible to change the palette every scanline with some [tweaks](https://github.com/nesbox/TIC-80/wiki/palette#more-than-16-colors), resulting in max. 2176 or even 4216 colors on screen.
 
-**mulTICcolor** converts an image (240 x 136 pixels or smaller) to a version with max. 16 or 31 colors per line.
+**mulTIColor** converts an image (240 x 136 pixels or smaller) to a version with max. 16 or 31 colors per line.
 The result will be saved as an image and as a [Lua](https://www.lua.org)-script with all the palettes, pixels and a display-routine (when using the "o"-option). Images with 16 or less colors (indexed) will be converted too, but with a single palette.
 
 
